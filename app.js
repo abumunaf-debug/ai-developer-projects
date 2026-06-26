@@ -1,187 +1,110 @@
-// ===== IMPORTS =====
-import { parseStudyPlan, renderStudyPlan, saveStudyPlan, COACH_STORAGE_KEY } from './study-coach.js';
+// app.js - Main application controller
+import storage from './utils/storage.js';
+import { createTask, updateTask, deleteTask, filterTasks, getStats } from './services/task-service.js';
+import { renderTaskItem } from './components/task-item.js';
+import { createElement, showElement, hideElement } from './utils/dom.js';
 
-// ==========================================
-// TASK MANAGER (Existing code - kept the same)
-// ==========================================
-const STORAGE_KEY = 'tasks-v1';
+// State
 let tasks = [];
 let currentFilter = 'all';
 
-const form = document.getElementById('task-form');
-const input = document.getElementById('task-input');
-const list = document.getElementById('task-list');
-const count = document.getElementById('task-count');
-const errorEl = document.getElementById('form-error');
-const filterBtns = document.querySelectorAll('.filter-btn');
-const clearBtn = document.getElementById('clear-completed');
+// DOM References
+const taskList = document.getElementById('task-list');
+const taskForm = document.getElementById('task-form');
+const taskInput = document.getElementById('task-input');
+const prioritySelect = document.getElementById('priority-select');
+const statsContainer = document.getElementById('stats');
 
-function escapeHtml(str) {
-    if (typeof str !== 'string') return '';
-    return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-}
-
-function loadTasks() {
-    try {
-        const raw = localStorage.getItem(STORAGE_KEY);
-        if (raw) {
-            const parsed = JSON.parse(raw);
-            if (Array.isArray(parsed)) tasks = parsed;
-        }
-    } catch { tasks = []; }
-}
-
-function saveTasks() {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
-}
-
-function addTask(title) {
-    const trimmed = title.trim();
-    if (!trimmed) throw new Error('Task title cannot be blank');
-    if (trimmed.length > 200) throw new Error('Title must be 200 characters or less');
-    const task = { id: Date.now(), title: trimmed, completed: false, createdAt: new Date().toISOString() };
-    tasks.push(task);
-    saveTasks();
-    render();
-    return tasks;
-}
-
-function toggleTask(id) {
-    const task = tasks.find(t => t.id === id);
-    if (task) { task.completed = !task.completed; saveTasks(); render(); }
-}
-
-function deleteTask(id) {
-    tasks = tasks.filter(t => t.id !== id);
-    saveTasks();
+// Initialize
+function init() {
+    // Load tasks from storage
+    const saved = storage.get();
+    tasks = saved || [];
     render();
 }
 
-function clearCompleted() {
-    tasks = tasks.filter(t => !t.completed);
-    saveTasks();
-    render();
-}
-
-function getFilteredTasks() {
-    if (currentFilter === 'active') return tasks.filter(t => !t.completed);
-    if (currentFilter === 'completed') return tasks.filter(t => t.completed);
-    return tasks;
-}
-
+// Render everything
 function render() {
-    const filtered = getFilteredTasks();
-    if (filtered.length === 0) {
-        list.innerHTML = `<li style="color:#6b7280; justify-content:center; border:none; background:transparent;">No ${currentFilter !== 'all' ? currentFilter : ''} tasks</li>`;
-    } else {
-        list.innerHTML = filtered.map(task => `
-            <li data-id="${task.id}" class="${task.completed ? 'completed' : ''}">
-                <input type="checkbox" ${task.completed ? 'checked' : ''} class="task-checkbox" />
-                <span class="task-text">${escapeHtml(task.title)}</span>
-                <button class="delete-btn" aria-label="Delete task">✕</button>
-            </li>
-        `).join('');
-    }
-    const stats = { total: tasks.length, active: tasks.filter(t => !t.completed).length };
-    count.textContent = `${stats.active} active · ${stats.total} total`;
-    filterBtns.forEach(btn => btn.classList.toggle('active', btn.dataset.filter === currentFilter));
+    const filtered = filterTasks(tasks, currentFilter);
+    renderTaskList(filtered);
+    renderStats();
+    saveToStorage();
 }
 
-form.addEventListener('submit', (e) => {
+// Render task list
+function renderTaskList(filteredTasks) {
+    if (filteredTasks.length === 0) {
+        taskList.innerHTML = '<li class="empty-state">No tasks found</li>';
+        return;
+    }
+    taskList.innerHTML = filteredTasks.map(renderTaskItem).join('');
+}
+
+// Render stats
+function renderStats() {
+    const stats = getStats(tasks);
+    statsContainer.innerHTML = `
+        <span>Total: ${stats.total}</span>
+        <span>Active: ${stats.active}</span>
+        <span>Completed: ${stats.completed}</span>
+        <span>🔴 High: ${stats.byPriority.high}</span>
+        <span>🟡 Medium: ${stats.byPriority.medium}</span>
+        <span>🟢 Low: ${stats.byPriority.low}</span>
+    `;
+}
+
+// Save to storage
+function saveToStorage() {
+    storage.set(tasks);
+}
+
+// Event Handlers
+function handleAddTask(e) {
     e.preventDefault();
-    errorEl.textContent = '';
-    try { addTask(input.value); input.value = ''; input.focus(); } 
-    catch (err) { errorEl.textContent = err.message; }
-});
+    const text = taskInput.value.trim();
+    const priority = prioritySelect.value;
+    
+    if (!text) return;
+    
+    const newTask = createTask(text, priority);
+    tasks = [...tasks, newTask];
+    taskInput.value = '';
+    render();
+}
 
-list.addEventListener('click', (e) => {
-    const li = e.target.closest('li');
-    if (!li) return;
-    const id = Number(li.dataset.id);
-    if (e.target.classList.contains('delete-btn')) { deleteTask(id); return; }
-    if (e.target.classList.contains('task-checkbox')) { toggleTask(id); }
-});
-
-filterBtns.forEach(btn => btn.addEventListener('click', () => { currentFilter = btn.dataset.filter; render(); }));
-clearBtn.addEventListener('click', clearCompleted);
-
-loadTasks();
-render();
-
-// ==========================================
-// ===== NEW: AI STUDY COACH =====
-// ==========================================
-const coachForm = document.getElementById('coach-form');
-const planInput = document.getElementById('plan-input');
-const parseBtn = document.getElementById('parse-btn');
-const clearPlanBtn = document.getElementById('clear-plan');
-const coachError = document.getElementById('coach-error');
-const coachOutput = document.getElementById('coach-output');
-const promptTemplateEl = document.getElementById('prompt-template');
-const copyPromptBtn = document.getElementById('copy-prompt');
-
-const PROMPT_TEMPLATE = `You are an expert software engineering tutor. Create a 5-topic study plan in JSON format:
-{
-  "planTitle": "string",
-  "totalDays": 5,
-  "generatedAt": "ISO date",
-  "topics": [
-    {
-      "id": 1,
-      "title": "string",
-      "durationHours": 2,
-      "objectives": ["objective 1", "objective 2"],
-      "resources": [{"title": "resource name", "url": "https://..."}],
-      "practicePrompt": "coding exercise"
+function handleTaskAction(e) {
+    const target = e.target;
+    const taskItem = target.closest('[data-id]');
+    if (!taskItem) return;
+    
+    const id = taskItem.dataset.id;
+    
+    // Handle delete
+    if (target.classList.contains('task-item__delete')) {
+        tasks = deleteTask(tasks, id);
+        render();
+        return;
     }
-  ]
-}`;
-
-promptTemplateEl.textContent = PROMPT_TEMPLATE;
-
-copyPromptBtn.addEventListener('click', async () => {
-    try {
-        await navigator.clipboard.writeText(PROMPT_TEMPLATE);
-        copyPromptBtn.textContent = '✅ Copied!';
-        setTimeout(() => { copyPromptBtn.textContent = 'Copy prompt'; }, 2000);
-    } catch { alert('Copy manually.'); }
-});
-
-coachForm.addEventListener('submit', (e) => {
-    e.preventDefault();
-    coachError.textContent = '';
-    coachError.style.display = 'none';
-    const raw = planInput.value;
-
-    parseBtn.disabled = true;
-    parseBtn.textContent = 'Parsing...';
-
-    try {
-        const plan = parseStudyPlan(raw);
-        saveStudyPlan(plan);
-        renderStudyPlan(plan, coachOutput);
-    } catch (err) {
-        coachError.textContent = err.message;
-        coachError.style.display = 'block';
-        coachOutput.innerHTML = '';
-    } finally {
-        parseBtn.disabled = false;
-        parseBtn.textContent = 'Parse Plan';
+    
+    // Handle toggle complete
+    if (target.classList.contains('task-item__checkbox')) {
+        const completed = target.checked;
+        tasks = updateTask(tasks, id, { completed });
+        render();
     }
+}
+
+// Event Listeners
+taskForm.addEventListener('submit', handleAddTask);
+taskList.addEventListener('click', handleTaskAction);
+
+// Filter buttons (add to your HTML)
+document.querySelectorAll('.filter-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        currentFilter = btn.dataset.filter;
+        render();
+    });
 });
 
-clearPlanBtn.addEventListener('click', () => {
-    localStorage.removeItem(COACH_STORAGE_KEY);
-    planInput.value = '';
-    coachOutput.innerHTML = '';
-    coachError.textContent = '';
-});
-
-try {
-    const raw = localStorage.getItem(COACH_STORAGE_KEY);
-    if (raw) {
-        const plan = parseStudyPlan(raw);
-        renderStudyPlan(plan, coachOutput);
-        planInput.value = JSON.stringify(plan, null, 2);
-    }
-} catch { /* Silently skip */ }
+// Start the app
+init();
