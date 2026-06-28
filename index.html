@@ -1,38 +1,40 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Task Manager</title>
-    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <main class="container">
-        <h1>Task Manager</h1>
-
-        <form id="task-form">
-            <label for="task-input">New task</label>
-            <div class="input-row">
-                <input type="text" id="task-input" placeholder="Enter a task..." required />
-                <button type="submit">Add Task</button>
-            </div>
-            <p id="form-error" class="error"></p>
-        </form>
-
+    <div id="app">
+        <h1>📋 Task Manager</h1>
+        
+        <!-- Stats -->
+        <div id="stats" class="stats"></div>
+        
+        <!-- Filters -->
         <div class="filters">
-            <button class="filter-btn active" data-filter="all">All</button>
+            <button class="filter-btn" data-filter="all">All</button>
             <button class="filter-btn" data-filter="active">Active</button>
             <button class="filter-btn" data-filter="completed">Completed</button>
         </div>
-
+        
+        <!-- Add Task Form -->
+        <form id="task-form">
+            <input type="text" id="task-input" placeholder="Enter task..." required>
+            <select id="priority-select">
+                <option value="low">Low</option>
+                <option value="medium" selected>Medium</option>
+                <option value="high">High</option>
+            </select>
+            <button type="submit">Add Task</button>
+        </form>
+        
+        <!-- Task List -->
         <ul id="task-list"></ul>
-
-        <div class="task-stats">
-            <span id="task-count">0 tasks</span>
-            <button id="clear-completed" class="secondary">Clear Completed</button>
-        </div>
-    </main>
-
-    <script src="app.js"></script>
+    </div>
+    
+    <script type="module" src="app.js"></script>
 </body>
 </html>
