@@ -1,28 +1,33 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Task Manager</title>
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
     <div id="app">
         <h1>📋 Task Manager</h1>
-        
+
         <!-- Stats -->
         <div id="stats" class="stats"></div>
-        
+
         <!-- Filters -->
         <div class="filters">
             <button class="filter-btn" data-filter="all">All</button>
             <button class="filter-btn" data-filter="active">Active</button>
             <button class="filter-btn" data-filter="completed">Completed</button>
         </div>
-        
+
         <!-- Add Task Form -->
         <form id="task-form">
-            <input type="text" id="task-input" placeholder="Enter task..." required>
+            <input
+                type="text"
+                id="task-input"
+                placeholder="Enter task..."
+                required
+            />
             <select id="priority-select">
                 <option value="low">Low</option>
                 <option value="medium" selected>Medium</option>
@@ -30,11 +35,26 @@
             </select>
             <button type="submit">Add Task</button>
         </form>
-        
+
+        <!-- Search Section (Day 8) -->
+        <section class="search-section">
+            <h2>🔍 Search Books</h2>
+            <div class="search-bar">
+                <input
+                    type="text"
+                    data-testid="search-input"
+                    placeholder="Search for a book by title or author..."
+                    aria-label="Search for books"
+                />
+                <span class="search-hint">Type at least 2 characters</span>
+            </div>
+            <div data-testid="search-results" class="search-results"></div>
+        </section>
+
         <!-- Task List -->
         <ul id="task-list"></ul>
     </div>
-    
+
     <script type="module" src="app.js"></script>
 </body>
 </html>
