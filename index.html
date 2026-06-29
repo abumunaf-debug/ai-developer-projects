@@ -8,51 +8,11 @@
 </head>
 <body>
     <div id="app">
-        <h1>📋 Task Manager</h1>
+        <!-- Navigation -->
+        <nav id="nav-container" aria-label="Main navigation"></nav>
 
-        <!-- Stats -->
-        <div id="stats" class="stats"></div>
-
-        <!-- Filters -->
-        <div class="filters">
-            <button class="filter-btn" data-filter="all">All</button>
-            <button class="filter-btn" data-filter="active">Active</button>
-            <button class="filter-btn" data-filter="completed">Completed</button>
-        </div>
-
-        <!-- Add Task Form -->
-        <form id="task-form">
-            <input
-                type="text"
-                id="task-input"
-                placeholder="Enter task..."
-                required
-            />
-            <select id="priority-select">
-                <option value="low">Low</option>
-                <option value="medium" selected>Medium</option>
-                <option value="high">High</option>
-            </select>
-            <button type="submit">Add Task</button>
-        </form>
-
-        <!-- Search Section (Day 8) -->
-        <section class="search-section">
-            <h2>🔍 Search Books</h2>
-            <div class="search-bar">
-                <input
-                    type="text"
-                    data-testid="search-input"
-                    placeholder="Search for a book by title or author..."
-                    aria-label="Search for books"
-                />
-                <span class="search-hint">Type at least 2 characters</span>
-            </div>
-            <div data-testid="search-results" class="search-results"></div>
-        </section>
-
-        <!-- Task List -->
-        <ul id="task-list"></ul>
+        <!-- Main Content -->
+        <main data-testid="main-content" id="main-content"></main>
     </div>
 
     <script type="module" src="app.js"></script>
